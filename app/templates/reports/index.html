@@ -1,0 +1,225 @@
+{% extends "base.html" %}
+
+{% block title %}Monthly Financial Reports{% endblock %}
+{% block header_title %}Monthly Financial Reports & AI Audits{% endblock %}
+
+{% block content %}
+<!-- Top Controls & Selector -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Financial Report for {{ month_name }} {{ selected_year }}</h4>
+        <p class="text-muted small mb-0">Consolidated financial statement, category breakdown and AI diagnostic analysis</p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <form method="GET" action="{{ url_for('reports.index') }}" class="d-flex align-items-center gap-2">
+            <select name="month" class="form-select form-select-sm" style="width: 140px;" onchange="this.form.submit()">
+                {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][m-1] }}
+                    </option>
+                {% endfor %}
+            </select>
+            <select name="year" class="form-select form-select-sm" style="width: 100px;" onchange="this.form.submit()">
+                {% for y in available_years %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <a href="{{ url_for('reports.export_csv', month=selected_month, year=selected_year) }}" class="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1">
+            <i class="bi bi-download"></i> Export CSV
+        </a>
+    </div>
+</div>
+
+<!-- Statement Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card stat-income shadow-sm">
+            <span class="text-muted small fw-semibold text-uppercase">Monthly Inflow</span>
+            <div class="stat-value text-success">{{ summary.total_income|inr }}</div>
+            <div class="small text-muted">{{ summary.income_sources|length }} income streams</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card stat-expense shadow-sm">
+            <span class="text-muted small fw-semibold text-uppercase">Monthly Outflow</span>
+            <div class="stat-value text-danger">{{ summary.total_expenses|inr }}</div>
+            <div class="small text-muted">{{ summary.category_breakdown|length }} spending categories</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card stat-savings shadow-sm">
+            <span class="text-muted small fw-semibold text-uppercase">Net Retained Savings</span>
+            <div class="stat-value {% if summary.net_savings >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                {{ summary.net_savings|inr }}
+            </div>
+            <div class="small text-muted">Surplus after all expenses</div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <div class="card stat-card stat-rate shadow-sm">
+            <span class="text-muted small fw-semibold text-uppercase">Savings Efficiency</span>
+            <div class="stat-value text-info">{{ summary.savings_rate }}%</div>
+            <div class="small text-muted">Benchmark target: 20-30%</div>
+        </div>
+    </div>
+</div>
+
+<!-- AI Financial Audit Section -->
+<div class="card shadow-sm border-0 mb-4 bg-white">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge p-2 bg-primary bg-opacity-10 text-primary fs-6"><i class="bi bi-stars"></i></span>
+            <span class="fw-bold fs-6">FinBot AI Financial Diagnostic & Audit</span>
+        </div>
+        <form method="POST" action="{{ url_for('reports.generate_audit') }}">
+            <input type="hidden" name="month" value="{{ selected_month }}">
+            <input type="hidden" name="year" value="{{ selected_year }}">
+            <button type="submit" class="btn btn-sm btn-primary d-flex align-items-center gap-2">
+                <i class="bi bi-arrow-clockwise"></i> Generate AI Audit
+            </button>
+        </form>
+    </div>
+    <div class="card-body p-4">
+        {% if saved_report and saved_report.ai_analysis %}
+            <div class="p-3 bg-light rounded-3 border" style="line-height: 1.6;">
+                <div class="markdown-rendered">
+                    {{ saved_report.ai_analysis|safe|replace('\n', '<br>') }}
+                </div>
+            </div>
+            <div class="small text-muted mt-2">
+                <i class="bi bi-clock-history me-1"></i> Generated on {{ saved_report.created_at.strftime('%d %b %Y, %I:%M %p') }}
+            </div>
+        {% else %}
+            <div class="text-center py-4">
+                <i class="bi bi-robot display-5 text-muted opacity-50 d-block mb-3"></i>
+                <h6 class="fw-bold">No AI Audit Generated for this Statement Yet</h6>
+                <p class="small text-muted mb-3">Click the "Generate AI Audit" button to trigger Google Gemini to analyze your cashflow, overspending, and savings milestones for this month.</p>
+                <form method="POST" action="{{ url_for('reports.generate_audit') }}">
+                    <input type="hidden" name="month" value="{{ selected_month }}">
+                    <input type="hidden" name="year" value="{{ selected_year }}">
+                    <button type="submit" class="btn btn-primary btn-sm px-4">
+                        <i class="bi bi-stars me-1"></i> Generate AI Audit Now
+                    </button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Category & Income Breakdown Tables & Charts -->
+<div class="row g-4 mb-4">
+    <!-- Category Spending Table -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold fs-6"><i class="bi bi-pie-chart text-danger me-2"></i>Expense Breakdown by Category</span>
+                <span class="badge bg-light text-muted border">{{ summary.category_breakdown|length }} categories</span>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-custom align-middle">
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Transactions</th>
+                            <th>Share of Outflow</th>
+                            <th class="text-end">Total Spent</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if summary.category_breakdown %}
+                            {% for c in summary.category_breakdown %}
+                                <tr>
+                                    <td class="fw-semibold">{{ c.category }}</td>
+                                    <td>{{ c.count }} tx</td>
+                                    <td style="width: 35%;">
+                                        <div class="d-flex justify-content-between small text-muted mb-1">
+                                            <span>{{ c.percentage }}%</span>
+                                        </div>
+                                        <div class="progress-custom">
+                                            <div class="progress-bar bg-danger" role="progressbar" style="width: {{ c.percentage }}%;"></div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end fw-bold text-danger">{{ c.total|inr }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center py-4 text-muted">No expense records found for this period.</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Category Doughnut Visualization -->
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white">
+                <span class="fw-bold fs-6"><i class="bi bi-graph-up text-primary me-2"></i>Distribution Chart</span>
+            </div>
+            <div class="card-body">
+                <div style="height: 270px; position: relative;">
+                    <canvas id="categoryDoughnutChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Income Sources Table -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-bold fs-6"><i class="bi bi-wallet2 text-success me-2"></i>Income Sources Breakdown</span>
+        <span class="badge bg-light text-muted border">{{ summary.income_sources|length }} streams</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom align-middle">
+            <thead>
+                <tr>
+                    <th>Income Source</th>
+                    <th>Transactions</th>
+                    <th>Share of Inflow</th>
+                    <th class="text-end">Total Received</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if summary.income_sources %}
+                    {% for s in summary.income_sources %}
+                        <tr>
+                            <td class="fw-semibold">{{ s.source }}</td>
+                            <td>{{ s.count }} payments</td>
+                            <td style="width: 35%;">
+                                <div class="d-flex justify-content-between small text-muted mb-1">
+                                    <span>{{ s.percentage }}%</span>
+                                </div>
+                                <div class="progress-custom">
+                                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ s.percentage }}%;"></div>
+                                </div>
+                            </td>
+                            <td class="text-end fw-bold text-success">{{ s.total|inr }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4 text-muted">No income records found for this period.</td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        initDashboardCharts({{ selected_month }}, {{ selected_year }});
+    });
+</script>
+{% endblock %}

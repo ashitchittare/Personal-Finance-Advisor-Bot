@@ -1,0 +1,450 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard{% endblock %}
+{% block header_title %}Financial Dashboard{% endblock %}
+
+{% block content %}
+<!-- Top Controls Bar -->
+<div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
+    <div>
+        <h4 class="fw-bold mb-1">Welcome back, {{ current_user.full_name or current_user.username }}! 👋</h4>
+        <p class="text-muted small mb-0">Financial Overview for <strong>{{ summary.month_name }} {{ summary.year }}</strong></p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- Month/Year Filter Form -->
+        <form method="GET" action="{{ url_for('main.dashboard') }}" class="d-flex align-items-center gap-2">
+            <select name="month" class="form-select form-select-sm" style="width: 130px;" onchange="this.form.submit()">
+                {% for m in range(1, 13) %}
+                    <option value="{{ m }}" {% if m == selected_month %}selected{% endif %}>
+                        {{ ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m-1] }}
+                    </option>
+                {% endfor %}
+            </select>
+            <select name="year" class="form-select form-select-sm" style="width: 100px;" onchange="this.form.submit()">
+                {% for y in available_years %}
+                    <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <!-- Quick Action Modals Triggers -->
+        <button class="btn btn-sm btn-success d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#quickIncomeModal">
+            <i class="bi bi-plus-circle"></i> Add Income
+        </button>
+        <button class="btn btn-sm btn-danger d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#quickExpenseModal">
+            <i class="bi bi-dash-circle"></i> Add Expense
+        </button>
+    </div>
+</div>
+
+<!-- KPI Cards Row -->
+<div class="row g-3 mb-4">
+    <!-- 1. Total Income -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-income shadow-sm h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-semibold text-uppercase">Total Income</span>
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-arrow-down-left"></i>
+                </div>
+            </div>
+            <div class="stat-value text-success">{{ summary.total_income|inr }}</div>
+            <div class="d-flex align-items-center gap-1 small text-muted">
+                <i class="bi bi-calendar-check text-success"></i> {{ summary.month_name }} Inflow
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Total Expenses -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-expense shadow-sm h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-semibold text-uppercase">Total Expenses</span>
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-arrow-up-right"></i>
+                </div>
+            </div>
+            <div class="stat-value text-danger">{{ summary.total_expenses|inr }}</div>
+            <div class="d-flex align-items-center gap-1 small text-muted">
+                <i class="bi bi-receipt text-danger"></i> {{ summary.category_breakdown|length }} Active Categories
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Net Savings -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-savings shadow-sm h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-semibold text-uppercase">Net Savings</span>
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-piggy-bank"></i>
+                </div>
+            </div>
+            <div class="stat-value {% if summary.net_savings >= 0 %}text-primary{% else %}text-danger{% endif %}">
+                {{ summary.net_savings|inr }}
+            </div>
+            <div class="d-flex align-items-center gap-1 small text-muted">
+                {% if summary.net_savings >= 0 %}
+                    <span class="badge bg-success-subtle text-success">Surplus Balance</span>
+                {% else %}
+                    <span class="badge bg-danger-subtle text-danger">Deficit (Overspent)</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. Savings Percentage -->
+    <div class="col-sm-6 col-xl-3">
+        <div class="card stat-card stat-rate shadow-sm h-100">
+            <div class="d-flex align-items-center justify-content-between">
+                <span class="text-muted small fw-semibold text-uppercase">Savings Rate</span>
+                <div class="stat-icon-wrapper">
+                    <i class="bi bi-percent"></i>
+                </div>
+            </div>
+            <div class="stat-value text-info">{{ summary.savings_rate }}%</div>
+            <div class="progress-custom mt-2">
+                <div class="progress-bar {% if summary.savings_rate >= 20 %}bg-success{% else %}bg-warning{% endif %}" 
+                     role="progressbar" 
+                     style="width: {{ [summary.savings_rate, 100]|min }}%; height: 100%;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- FinBot AI Quick Insight Banner -->
+<div class="card bg-dark text-white border-0 rounded-4 shadow-sm mb-4 p-3 position-relative overflow-hidden">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle p-2 bg-primary bg-opacity-25 text-warning fs-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <i class="bi bi-stars"></i>
+            </div>
+            <div>
+                <h6 class="fw-bold mb-1 text-white">FinBot AI Financial Advisor Ready</h6>
+                <p class="small text-white-50 mb-0">
+                    {% if summary.over_budget_count > 0 %}
+                        ⚠️ Notice: You have <strong>{{ summary.over_budget_count }} category(s)</strong> exceeding budget limits this month.
+                    {% elif summary.savings_rate >= 30 %}
+                        🌟 Excellent! You are maintaining a healthy <strong>{{ summary.savings_rate }}%</strong> savings rate.
+                    {% else %}
+                        💡 Ask FinBot how to optimize your ₹{{ summary.total_expenses|inr }} expenses this month.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        <a href="{{ url_for('advisor.index') }}" class="btn btn-primary btn-sm px-3 rounded-pill fw-semibold">
+            Open AI Chat <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4 mb-4">
+    <!-- 6-Month Income vs Expenses Trend -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="fw-bold fs-6"><i class="bi bi-graph-up text-primary me-2"></i>Cashflow Trends (Past 6 Months)</div>
+                <span class="badge bg-light text-muted border">₹ INR</span>
+            </div>
+            <div class="card-body">
+                <div style="height: 300px; position: relative;">
+                    <canvas id="trendLineChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expense by Category Doughnut -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="fw-bold fs-6"><i class="bi bi-pie-chart text-danger me-2"></i>Category Spending</div>
+                <span class="badge bg-light text-muted border">{{ summary.month_name }}</span>
+            </div>
+            <div class="card-body">
+                <div style="height: 250px; position: relative;">
+                    <canvas id="categoryDoughnutChart"></canvas>
+                </div>
+                {% if summary.category_breakdown %}
+                    <div class="text-center mt-2 small text-muted">
+                        Top expense: <strong>{{ summary.category_breakdown[0].category }}</strong> ({{ summary.category_breakdown[0].total|inr }})
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Budgets & Savings Goals Row -->
+<div class="row g-4 mb-4">
+    <!-- Category Budget Status -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="fw-bold fs-6"><i class="bi bi-speedometer2 text-warning me-2"></i>Monthly Budget Status</div>
+                <a href="{{ url_for('budget.index', month=selected_month, year=selected_year) }}" class="small text-decoration-none">Manage Budgets &rarr;</a>
+            </div>
+            <div class="card-body">
+                {% if summary.budget_status %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for b in summary.budget_status[:5] %}
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center small mb-1">
+                                    <span class="fw-semibold">{{ b.category }}</span>
+                                    <span>
+                                        <strong>{{ b.spent_amount|inr }}</strong> / <span class="text-muted">{{ b.budget_amount|inr }}</span>
+                                        {% if b.is_over_budget %}
+                                            <span class="badge bg-danger ms-1">Over Budget!</span>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="progress-custom">
+                                    <div class="progress-bar {% if b.percentage_used > 100 %}bg-danger{% elif b.percentage_used > 80 %}bg-warning{% else %}bg-success{% endif %}"
+                                         role="progressbar"
+                                         style="width: {{ [b.percentage_used, 100]|min }}%;"></div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-wallet display-6 d-block mb-2 opacity-50"></i>
+                        <p class="small mb-2">No category budgets configured for this month.</p>
+                        <a href="{{ url_for('budget.index', month=selected_month, year=selected_year) }}" class="btn btn-sm btn-outline-primary">Set Up Budgets</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Financial Goals -->
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="fw-bold fs-6"><i class="bi bi-flag text-info me-2"></i>Savings Goals</div>
+                <a href="{{ url_for('goals.index') }}" class="small text-decoration-none">View All Goals &rarr;</a>
+            </div>
+            <div class="card-body">
+                {% if summary.goals %}
+                    <div class="d-flex flex-column gap-3">
+                        {% for g in summary.goals[:4] %}
+                            <div class="p-2 rounded-3 bg-light border">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold small">{{ g.title }}</span>
+                                    <span class="small fw-semibold text-primary">{{ g.progress_percentage }}%</span>
+                                </div>
+                                <div class="progress-custom mb-2">
+                                    <div class="progress-bar bg-info" role="progressbar" style="width: {{ g.progress_percentage }}%;"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center small text-muted" style="font-size: 0.75rem;">
+                                    <span>Saved: <strong>{{ g.current_amount|inr }}</strong> of {{ g.target_amount|inr }}</span>
+                                    <span>Target: {{ g.deadline }}</span>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-trophy display-6 d-block mb-2 opacity-50"></i>
+                        <p class="small mb-2">No active savings goals yet.</p>
+                        <a href="{{ url_for('goals.index') }}" class="btn btn-sm btn-outline-info">Create a Goal</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Transactions Table -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <div class="fw-bold fs-6"><i class="bi bi-clock-history text-secondary me-2"></i>Recent Transactions</div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('income.index') }}" class="btn btn-sm btn-outline-success">All Income</a>
+            <a href="{{ url_for('expense.index') }}" class="btn btn-sm btn-outline-danger">All Expenses</a>
+        </div>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-custom align-middle">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Category / Source</th>
+                    <th class="text-end">Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if summary.recent_transactions %}
+                    {% for tx in summary.recent_transactions %}
+                        <tr>
+                            <td class="text-muted small">{{ tx.date_str }}</td>
+                            <td>
+                                {% if tx.type == 'income' %}
+                                    <span class="badge badge-category badge-income"><i class="bi bi-arrow-down-left"></i> Income</span>
+                                {% else %}
+                                    <span class="badge badge-category badge-expense"><i class="bi bi-arrow-up-right"></i> Expense</span>
+                                {% endif %}
+                            </td>
+                            <td class="fw-medium">
+                                {{ tx.title }}
+                                {% if tx.notes %}
+                                    <div class="text-muted small" style="font-size: 0.75rem;">{{ tx.notes }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ tx.category_or_source }}</span>
+                            </td>
+                            <td class="text-end fw-bold {% if tx.type == 'income' %}text-success{% else %}text-danger{% endif %}">
+                                {% if tx.type == 'income' %}+{% else %}-{% endif %}{{ tx.amount|inr }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            No transactions recorded yet. Click "Add Income" or "Add Expense" to get started.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ================= QUICK MODALS ================= -->
+
+<!-- Quick Income Modal -->
+<div class="modal fade" id="quickIncomeModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-plus-circle me-2"></i>Add Income Entry</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('income.add') }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Income Title / Description <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Monthly Salary, Freelance project" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Amount (₹ INR) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Source</label>
+                            <select name="source" class="form-select">
+                                <option value="Salary">Salary</option>
+                                <option value="Freelance">Freelance</option>
+                                <option value="Investments / Dividends">Investments / Dividends</option>
+                                <option value="Business / Sales">Business / Sales</option>
+                                <option value="Rental Income">Rental Income</option>
+                                <option value="Bonus / Incentive">Bonus / Incentive</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Date</label>
+                        <input type="date" name="date" class="form-control" value="{{ selected_year }}-{{ '%02d'|format(selected_month) }}-01">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional details..."></textarea>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" name="is_recurring" class="form-check-input" id="incomeRecurring">
+                        <label class="form-check-label small" for="incomeRecurring">Recurring Monthly Income</label>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-success px-4">Save Income</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Expense Modal -->
+<div class="modal fade" id="quickExpenseModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fs-6 fw-bold"><i class="bi bi-dash-circle me-2"></i>Add Expense Entry</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('expense.add') }}">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Expense Title / Item <span class="text-danger">*</span></label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Swiggy Order, Grocery, Electricity Bill" required>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Amount (₹ INR) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" name="amount" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Category</label>
+                            <select name="category" class="form-select">
+                                <option value="Food & Dining">Food & Dining</option>
+                                <option value="Groceries">Groceries</option>
+                                <option value="Transport & Fuel">Transport & Fuel</option>
+                                <option value="Rent & Housing">Rent & Housing</option>
+                                <option value="Utilities & Bills">Utilities & Bills</option>
+                                <option value="Shopping & Electronics">Shopping & Electronics</option>
+                                <option value="Entertainment & OTT">Entertainment & OTT</option>
+                                <option value="Healthcare & Medical">Healthcare & Medical</option>
+                                <option value="Education & Books">Education & Books</option>
+                                <option value="Personal Care & Fitness">Personal Care & Fitness</option>
+                                <option value="Travel & Vacation">Travel & Vacation</option>
+                                <option value="Investments & SIP">Investments & SIP</option>
+                                <option value="Miscellaneous">Miscellaneous</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Payment Method</label>
+                            <select name="payment_method" class="form-select">
+                                <option value="UPI (GooglePay/PhonePe/Paytm)">UPI</option>
+                                <option value="Credit Card">Credit Card</option>
+                                <option value="Debit Card">Debit Card</option>
+                                <option value="Net Banking">Net Banking</option>
+                                <option value="Cash">Cash</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Date</label>
+                            <input type="date" name="date" class="form-control" value="{{ selected_year }}-{{ '%02d'|format(selected_month) }}-01">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Notes (Optional)</label>
+                        <textarea name="notes" class="form-control" rows="2" placeholder="Optional details..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-sm btn-danger px-4">Save Expense</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        initDashboardCharts({{ selected_month }}, {{ selected_year }});
+    });
+</script>
+{% endblock %}

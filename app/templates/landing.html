@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}FinBot - Next-Gen AI Personal Finance Advisor{% endblock %}
+
+{% block public_content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-7">
+                <div class="hero-badge mb-3">
+                    <i class="bi bi-stars"></i> Powered by Google Gemini AI & ₹ INR Analytics
+                </div>
+                <h1 class="display-4 fw-bold mb-3 text-white">
+                    Master Your Money with <span style="background: linear-gradient(135deg, #818cf8 0%, #c084fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">AI-Driven Financial Intelligence</span>
+                </h1>
+                <p class="lead text-white-50 mb-4">
+                    Track every rupee, eliminate budget leakages, automate savings goals, and get instant 24/7 personal wealth guidance from your dedicated AI Financial Advisor.
+                </p>
+                <div class="d-flex flex-wrap gap-3 mb-4">
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-4 py-2">
+                        Get Started Free <i class="bi bi-arrow-right ms-2"></i>
+                    </a>
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-outline-light btn-lg px-4 py-2">
+                        Sign In to Dashboard
+                    </a>
+                </div>
+
+                <!-- Quick Demo Banner -->
+                <div class="card bg-dark bg-opacity-50 border-secondary border-opacity-50 p-3 rounded-3 text-white-50">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="bi bi-key-fill text-warning"></i>
+                        <strong class="text-white small">Instant Demo Credentials:</strong>
+                    </div>
+                    <div class="small">
+                        Username: <code class="text-info">aarav</code> &nbsp;|&nbsp; 
+                        Password: <code class="text-info">password123</code> &nbsp; 
+                        <a href="{{ url_for('auth.login') }}" class="text-warning text-decoration-none ms-2">Login Now &rarr;</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Graphic Preview -->
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-lg bg-white p-3 rounded-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="rounded-circle p-2 bg-primary-subtle text-primary">
+                                <i class="bi bi-shield-check"></i>
+                            </span>
+                            <span class="fw-bold small">Live Financial Snapshot</span>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">₹ INR Active</span>
+                    </div>
+                    
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded-3">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">Monthly Income</small>
+                                <strong class="text-success fs-6">₹1,16,300.00</strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-2 bg-light rounded-3">
+                                <small class="text-muted d-block" style="font-size: 0.75rem;">Monthly Expenses</small>
+                                <strong class="text-danger fs-6">₹68,449.00</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Chat Preview Bubble -->
+                    <div class="p-3 bg-light rounded-3 mb-2 border">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <i class="bi bi-stars text-warning fs-5"></i>
+                            <strong class="small text-primary">FinBot AI Advisor:</strong>
+                        </div>
+                        <p class="small text-secondary mb-0">
+                            "You are currently saving <strong>41.1%</strong> of your income this month! However, your <em>Food & Dining</em> expense exceeded budget by ₹400. Reallocating ₹5,000 to your <em>Emergency Fund</em> will keep you on track for your 6-month goal!"
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Grid Section -->
+<section class="py-5 bg-white" id="features">
+    <div class="container py-4">
+        <div class="text-center max-w-700 mx-auto mb-5">
+            <h6 class="text-primary fw-bold text-uppercase letter-spacing-1">Complete Feature Suite</h6>
+            <h2 class="fw-bold display-6">Engineered for Complete Financial Clarity</h2>
+            <p class="text-muted">Everything you need to track cashflow, enforce category budgets, and hit savings milestones.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- 1. Income Tracking -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card">
+                    <div class="feature-icon-box bg-success-subtle text-success">
+                        <i class="bi bi-arrow-down-left-circle-fill"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Income Management</h5>
+                    <p class="text-muted small mb-0">
+                        Record multi-source income (Salary, Freelance, Dividends, Business). Flag recurring income streams and track historical growth.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 2. Expense Tracking -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card">
+                    <div class="feature-icon-box bg-danger-subtle text-danger">
+                        <i class="bi bi-arrow-up-right-circle-fill"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Expense Categorization</h5>
+                    <p class="text-muted small mb-0">
+                        Log expenses with automatic category tags (Food, Rent, Fuel, OTT, Bills, SIPs) and payment methods (UPI, Cards, Net Banking).
+                    </p>
+                </div>
+            </div>
+
+            <!-- 3. Smart Budgeting -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card">
+                    <div class="feature-icon-box bg-warning-subtle text-warning">
+                        <i class="bi bi-pie-chart-fill"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Budget Planner & Alerts</h5>
+                    <p class="text-muted small mb-0">
+                        Set monthly limits for individual categories. Real-time visual progress bars warn you before and when overspending occurs.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 4. Savings Goals -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card">
+                    <div class="feature-icon-box bg-info-subtle text-info">
+                        <i class="bi bi-flag-fill"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Financial Goals Tracker</h5>
+                    <p class="text-muted small mb-0">
+                        Plan for emergency funds, gadgets, vacations, or vehicles. Automated math calculates exact monthly savings required to hit deadlines.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 5. Monthly Reports -->
+            <div class="col-md-6 col-lg-4">
+                <div class="card feature-card">
+                    <div class="feature-icon-box bg-primary-subtle text-primary">
+                        <i class="bi bi-file-earmark-bar-graph-fill"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Deep Monthly Reports</h5>
+                    <p class="text-muted small mb-0">
+                        Review cashflows with interactive Chart.js charts, category breakdowns, savings rates, and one-click CSV transaction export.
+                    </p>
+                </div>
+            </div>
+
+            <!-- 6. Google Gemini AI -->
+            <div class="col-md-6 col-lg-4" id="ai-advisor">
+                <div class="card feature-card border-primary border-2">
+                    <div class="feature-icon-box" style="background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%); color: white;">
+                        <i class="bi bi-stars"></i>
+                    </div>
+                    <h5 class="fw-bold mb-2">Gemini AI Financial Advisor</h5>
+                    <p class="text-muted small mb-0">
+                        Ask any financial question in natural language. FinBot analyzes your real spending patterns, identifies leaks, and suggests realistic savings plans.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="py-5 bg-light text-center border-top">
+    <div class="container py-4">
+        <h2 class="fw-bold mb-3">Ready to Take Full Control of Your Personal Finances?</h2>
+        <p class="text-muted mb-4 lead">Join today and start optimizing your savings with AI.</p>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg px-5 py-3 shadow">
+            Create Free Account Now <i class="bi bi-arrow-right ms-2"></i>
+        </a>
+    </div>
+</section>
+{% endblock %}

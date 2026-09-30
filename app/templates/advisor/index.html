@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}FinBot - AI Financial Advisor{% endblock %}
+{% block header_title %}FinBot AI Financial Advisor{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Main Chat Column -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 chat-container">
+            <!-- Chat Header -->
+            <div class="p-3 bg-white border-bottom d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 bg-primary text-white d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                        <i class="bi bi-stars fs-5 text-warning"></i>
+                    </div>
+                    <div>
+                        <div class="fw-bold fs-6">FinBot Financial Intelligence</div>
+                        <div class="text-success small d-flex align-items-center gap-1" style="font-size: 0.75rem;">
+                            <span class="rounded-circle bg-success d-inline-block" style="width: 8px; height: 8px;"></span> Online & Grounded in your ₹ INR Finances
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('advisor.clear_history') }}" onsubmit="return confirm('Clear your chat history with FinBot?');">
+                    <button type="submit" class="btn btn-sm btn-outline-secondary" title="Clear Chat History">
+                        <i class="bi bi-trash me-1"></i> Clear
+                    </button>
+                </form>
+            </div>
+
+            <!-- Messages Stream Area -->
+            <div class="chat-messages" id="chatMessages">
+                <!-- Welcome Assistant Intro -->
+                <div class="chat-bubble assistant">
+                    <strong>👋 Hello {{ current_user.full_name or current_user.username }}!</strong> I am <strong>FinBot</strong>, your dedicated AI Personal Finance Advisor.
+                    <br><br>
+                    I have real-time access to your income streams, expense logs, category budgets, and savings goals for <strong>{{ summary.month_name }} {{ summary.year }}</strong>.
+                    <br><br>
+                    How can I assist your wealth-building today? You can click any quick suggestion below or ask any question!
+                </div>
+
+                <!-- Database Stored Messages -->
+                {% for msg in messages %}
+                    <div class="chat-bubble {{ msg.role }}">
+                        {% if msg.role == 'assistant' %}
+                            <div class="markdown-rendered">{{ msg.message|safe|replace('\n', '<br>') }}</div>
+                        {% else %}
+                            {{ msg.message }}
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Quick Suggestions Chips Bar -->
+            <div class="px-3 py-2 bg-light border-top d-flex gap-2 overflow-auto" style="white-space: nowrap;">
+                <button type="button" class="quick-prompt-chip" data-prompt="Analyze my current spending patterns and tell me where my money is going.">
+                    📊 Analyze Spending Patterns
+                </button>
+                <button type="button" class="quick-prompt-chip" data-prompt="Which expense categories am I overspending on, and how can I fix it?">
+                    ⚠️ Identify Overspending
+                </button>
+                <button type="button" class="quick-prompt-chip" data-prompt="Give me actionable tips to save ₹10,000 more every month.">
+                    💰 How to Save ₹10,000 More
+                </button>
+                <button type="button" class="quick-prompt-chip" data-prompt="Suggest a realistic monthly budget allocation based on the 50/30/20 rule.">
+                    🎯 Suggest 50/30/20 Budget
+                </button>
+                <button type="button" class="quick-prompt-chip" data-prompt="Evaluate my progress towards my active savings goals and calculate if I am on track.">
+                    📈 Review Savings Goals
+                </button>
+            </div>
+
+            <!-- Input Area -->
+            <div class="chat-input-area">
+                <form id="chatForm" class="d-flex gap-2">
+                    <input type="text" 
+                           id="chatInput" 
+                           class="form-control" 
+                           placeholder="Ask FinBot anything about your money, budgets, investments, or savings..." 
+                           autocomplete="off" 
+                           required>
+                    <button type="submit" id="sendBtn" class="btn btn-primary px-4 d-flex align-items-center gap-1">
+                        <span>Send</span> <i class="bi bi-send-fill"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Live Financial Snapshot Sidebar -->
+    <div class="col-lg-4">
+        <!-- Live Snapshot Card -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white">
+                <span class="fw-bold fs-6"><i class="bi bi-speedometer2 text-primary me-2"></i>Live Context Snapshot</span>
+            </div>
+            <div class="card-body p-3">
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted small">Month</span>
+                    <strong class="small">{{ summary.month_name }} {{ summary.year }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted small">Inflow (Income)</span>
+                    <strong class="text-success small">{{ summary.total_income|inr }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted small">Outflow (Expenses)</span>
+                    <strong class="text-danger small">{{ summary.total_expenses|inr }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted small">Net Savings</span>
+                    <strong class="text-primary small">{{ summary.net_savings|inr }}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom">
+                    <span class="text-muted small">Savings Rate</span>
+                    <strong class="text-info small">{{ summary.savings_rate }}%</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span class="text-muted small">Over-Budget Limits</span>
+                    <strong class="{% if summary.over_budget_count > 0 %}text-danger{% else %}text-success{% endif %} small">
+                        {{ summary.over_budget_count }} category(s)
+                    </strong>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI Capabilities Card -->
+        <div class="card shadow-sm border-0 mb-4 bg-light">
+            <div class="card-body p-4">
+                <h6 class="fw-bold mb-2"><i class="bi bi-lightbulb-fill text-warning me-2"></i>What FinBot can do:</h6>
+                <ul class="small text-muted ps-3 mb-0 d-flex flex-column gap-2">
+                    <li><strong>Analyze Spending:</strong> Finds patterns across your food, shopping, and entertainment logs.</li>
+                    <li><strong>Leak Detection:</strong> Identifies which categories consistently bleed cash.</li>
+                    <li><strong>Budget Recommendations:</strong> Suggests practical monthly spending caps.</li>
+                    <li><strong>Goal Projections:</strong> Calculates timelines and monthly deposit needs.</li>
+                    <li><strong>Indian Finance Advice:</strong> Guidance on PPF, SIPs, Emergency Funds, and Tax optimization.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/advisor.js') }}"></script>
+{% endblock %}
